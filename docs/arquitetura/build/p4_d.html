@@ -1,0 +1,245 @@
+<!-- ================= 5 ENTREGA, MARCOS E RISCOS ================= -->
+<section class="sec" id="s5">
+  <h1>5 Entrega, marcos e riscos</h1>
+  <p class="lead">Datas e critérios são os do plano revisado de 13/10; aqui se vê o que cada marco entrega do motor de análise.</p>
+
+  <h2 id="s5-1">5.1 Marcos</h2>
+  <table class="compact">
+    <thead><tr><th style="width:11%">Marco</th><th style="width:25%">Critério do plano</th><th>O que esta proposta entrega</th></tr></thead>
+    <tbody>
+      <tr><td>M0 · 30/10</td><td>Ambiente por IaC, catálogo de fontes v1.</td><td>Terraform e containers; catálogo com trilha e status jurídico por fonte; contrato <code>RawItem</code> e schema <code>core</code>. A data já passou: confirmar o status no Linear.</td></tr>
+      <tr><td>M1 · 27/11</td><td>Coleta aberta estável a 95% por 7 dias.</td><td>Scrapers próprios (HTTP e JS) com canário; <code>collector_run</code> e <code>cobertura</code> por fonte; zona bruta e normalização. O Apify só entra nas redes depois do jurídico.</td></tr>
+      <tr><td>M2 · 18/12</td><td>Classificador com F1 de 0,85.</td><td>N0 completo. Disputa Jev e Claude pequeno na amostra própria; o conjunto do Grupo (20/11) calibra τ e vira o gate de F1.</td></tr>
+      <tr><td>M3 · 22/01</td><td>Relatório ponta a ponta aprovado.</td><td>N1 e N2 em código; N3 e N5 com validadores e revisão; views <code>bi</code> para o Power BI.</td></tr>
+      <tr><td>M4 · 05/02</td><td>Produção na Azure do Grupo.</td><td>Destino a decidir. As mesmas imagens e o mesmo Terraform servem para a Azure do Grupo ou outra nuvem. N4 pode entrar aqui, se o M3 estiver aprovado.</td></tr>
+      <tr><td>M5 · 19/02</td><td>Handover assinado após 2 ciclos.</td><td>Runbook, custo em regime, catálogo de fontes como documento vivo e as métricas da seção 4.7 como base do aceite.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="s5-2">5.2 Riscos e mitigações</h2>
+  <table class="compact">
+    <thead><tr><th style="width:21%">Risco</th><th style="width:22%">Efeito</th><th>Mitigação</th></tr></thead>
+    <tbody>
+      <tr><td>Manutenção dos scrapers próprios</td><td>A cobertura cai quando um site muda.</td><td>Canário diário, HTML gravado e alerta no Linear. Ordem de grandeza para planejar: 1 a 2 pessoa-dias por fonte nova<span class="tag">estimativa sem medição</span></td></tr>
+      <tr><td>Vale falso por falha de coleta</td><td>Insight sobre algo que não aconteceu.</td><td><code>cobertura</code> por ponto de série; sinal suprimido abaixo do limiar.</td></tr>
+      <tr><td>Afirmação sem base no texto do Claude</td><td>Perda de confiança do Grupo.</td><td>Validadores V1 a V6, evidência obrigatória e revisão total em N4 e N5.</td></tr>
+      <tr><td>Correlação lida como causa</td><td>Decisão errada.</td><td>Linguagem de hipótese, limitações obrigatórias e N4 só depois do M3.</td></tr>
+      <tr><td>Jev em português</td><td>F1 abaixo da meta.</td><td>Disputa com Claude pequeno antes do M2; interface única de <code>Classifier</code>.</td></tr>
+      <tr><td>Mudança de versão de modelo</td><td>A série histórica quebra.</td><td>Versão fixa, recalibração de τ e reprocessamento só das janelas afetadas.</td></tr>
+      <tr><td>Dados saem do ambiente</td><td>LGPD e aprovação de fornecedor.</td><td>Minimizar o que sai (autor em hash, só o texto necessário, agregados para o Claude). A API da Anthropic não lista região no Brasil: inferência global ou nos EUA, esta com 1,1x no preço. Levar o assunto ao jurídico em 04/12.</td></tr>
+      <tr><td>Custo do Claude</td><td>Estoura o orçamento.</td><td>Chamadas proporcionais a sinais e não a itens; K por escopo; registro em <code>gov.cost_ledger</code>.</td></tr>
+      <tr><td>Redes sociais</td><td>Bloqueio jurídico ou técnico.</td><td>Fase 2 se o jurídico não liberar. Em 2024, um tribunal dos EUA não deu razão à Meta no pedido de quebra de contrato contra a Bright Data, por falta de prova de coleta logada; não é regra geral nem parecer jurídico.</td></tr>
+      <tr><td>Power BI e Entra ID</td><td>Atraso do Grupo (18/12).</td><td>Views <code>bi</code> estáveis e alternativa de entrega em PDF ou HTML.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="s5-3">5.3 Decisões em aberto <span class="note" style="font-weight:400">· cada item vira uma ADR quando for decidido</span></h2>
+    <ul style="columns:2; column-gap:18pt">
+    <li><strong>Onde hospedar.</strong> Nuvem da IAgentics, Azure do Grupo ou outra. Esta arquitetura funciona em qualquer uma.</li>
+    <li><strong>Classificador.</strong> Jev ou Claude pequeno, decidido pela disputa na amostra própria (F1, custo e latência).</li>
+    <li><strong>Redes sociais.</strong> Quais entram, em que fase e com qual fornecedor, depois do jurídico.</li>
+    <li><strong>Níveis do MVP.</strong> N0 a N3 e N5 agora, N4 depois do M3.</li>
+    <li><strong>Modelo por nível.</strong> Menor em N3 e mais forte em N5, a confirmar por custo e qualidade.</li>
+    <li><strong>Orquestrador.</strong> Dagster ou Prefect, ou algo mínimo (cron e fila) se o volume permitir.</li>
+  </ul>
+</section>
+
+<!-- ================= ANEXOS ================= -->
+<section class="sec" id="sa">
+  <h1>Anexos</h1>
+
+  <h2 id="sa-a">A DDL de referência</h2>
+  <p>Postgres. Cobre as entidades dos schemas <code>core</code> e <code>analytics</code> descritas na seção 3.4. As tabelas de <code>gov</code> e <code>analytics.report</code> seguem o resumo da seção 3.4.</p>
+<pre class="long">CREATE SCHEMA core; CREATE SCHEMA analytics; CREATE SCHEMA gov; CREATE SCHEMA bi;
+
+CREATE TABLE core.source (
+  source_id        text PRIMARY KEY,
+  nome             text NOT NULL,
+  trilha           text NOT NULL CHECK (trilha IN ('own_http','own_js','apify','fora_mvp')),
+  cadencia         interval,
+  status_juridico  text NOT NULL DEFAULT 'pendente'
+                   CHECK (status_juridico IN ('liberado','pendente','negado')),
+  ativo            boolean NOT NULL DEFAULT true
+);
+
+CREATE TABLE core.collector_run (
+  run_id           uuid PRIMARY KEY,
+  source_id        text NOT NULL REFERENCES core.source,
+  iniciado_em      timestamptz NOT NULL,
+  concluido_em     timestamptz,
+  status           text NOT NULL CHECK (status IN ('ok','parcial','falhou')),
+  itens_coletados  integer NOT NULL DEFAULT 0,
+  erros            integer NOT NULL DEFAULT 0
+);
+
+CREATE TABLE core.raw_item (
+  raw_id        uuid PRIMARY KEY,
+  run_id        uuid NOT NULL REFERENCES core.collector_run,
+  uri_objeto    text NOT NULL,
+  hash_payload  text NOT NULL,
+  coletado_em   timestamptz NOT NULL
+);
+
+CREATE TABLE core.taxonomy (
+  tax_id  integer PRIMARY KEY,
+  tipo    text NOT NULL CHECK (tipo IN ('tema','marca','produto')),
+  nome    text NOT NULL,
+  pai_id  integer REFERENCES core.taxonomy,
+  versao  integer NOT NULL
+);
+
+CREATE TABLE core.model_version (
+  modelo_id    integer PRIMARY KEY,
+  provedor     text NOT NULL CHECK (provedor IN ('jev','anthropic')),
+  nome         text NOT NULL,
+  versao_fixa  text NOT NULL,
+  parametros   jsonb,
+  ativo        boolean NOT NULL DEFAULT true
+);
+
+CREATE TABLE core.item (
+  item_id       text PRIMARY KEY,          -- sha256(source_id || url_canonica)
+  source_id     text NOT NULL REFERENCES core.source,
+  raw_id        uuid NOT NULL REFERENCES core.raw_item,
+  publicado_em  timestamptz NOT NULL,
+  coletado_em   timestamptz NOT NULL,
+  idioma        text,
+  texto         text NOT NULL,
+  texto_hash    text NOT NULL,
+  autor_hash    text,                      -- HMAC-SHA256, nunca o identificador
+  dedupe_grupo  text,
+  metricas      jsonb
+);
+CREATE INDEX ON core.item (source_id, publicado_em);
+CREATE INDEX ON core.item (dedupe_grupo);
+
+CREATE TABLE core.label (
+  label_id    uuid PRIMARY KEY,
+  item_id     text NOT NULL REFERENCES core.item,
+  texto_hash  text NOT NULL,
+  pergunta    text NOT NULL CHECK (pergunta IN ('relevante','tema','marca','sentimento')),
+  resposta    text NOT NULL,
+  prob        jsonb,
+  confianca   real CHECK (confianca BETWEEN 0 AND 1),
+  origem      text NOT NULL CHECK (origem IN ('jev','claude','humano')),
+  modelo_id   integer REFERENCES core.model_version,
+  criado_em   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON core.label (item_id, pergunta, criado_em DESC);
+
+-- resposta vigente: humano primeiro, depois a mais recente sobre o texto atual
+CREATE VIEW core.label_current AS
+SELECT DISTINCT ON (l.item_id, l.pergunta) l.*
+FROM core.label l
+JOIN core.item i ON i.item_id = l.item_id AND i.texto_hash = l.texto_hash
+ORDER BY l.item_id, l.pergunta, (l.origem = 'humano') DESC, l.criado_em DESC;
+
+CREATE TABLE analytics.series_point (
+  dia               date NOT NULL,
+  tema_id           integer NOT NULL REFERENCES core.taxonomy,
+  marca_id          integer REFERENCES core.taxonomy,
+  source_id         text NOT NULL REFERENCES core.source,
+  volume            integer NOT NULL,
+  share             real NOT NULL,
+  sentimento_medio  real,
+  engajamento       bigint,
+  cobertura         real NOT NULL CHECK (cobertura BETWEEN 0 AND 1)
+);
+-- marca_id pode ser nulo, então a unicidade usa COALESCE
+CREATE UNIQUE INDEX ON analytics.series_point (dia, tema_id, COALESCE(marca_id, 0), source_id);
+
+CREATE TABLE analytics.signal (
+  signal_id        uuid PRIMARY KEY,
+  tipo             text NOT NULL
+                   CHECK (tipo IN ('pico','vale','patamar','emergencia','divergencia')),
+  escopo           jsonb NOT NULL,
+  periodo          daterange NOT NULL,
+  magnitude        real,
+  z_robusto        real,
+  itens_distintos  integer NOT NULL,
+  cobertura_ok     boolean NOT NULL,
+  prioridade       real,
+  metodo_versao    text NOT NULL,
+  criado_em        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE analytics.insight (
+  insight_id    uuid PRIMARY KEY,
+  nivel         text NOT NULL CHECK (nivel IN ('N3','N4','N5')),
+  escopo        jsonb NOT NULL,
+  texto         text NOT NULL,
+  saida_json    jsonb NOT NULL,
+  payload_hash  text NOT NULL,
+  confianca     text NOT NULL CHECK (confianca IN ('baixa','media','alta')),
+  status        text NOT NULL DEFAULT 'rascunho'
+                CHECK (status IN ('rascunho','revisado','publicado','obsoleto')),
+  modelo_id     integer NOT NULL REFERENCES core.model_version,
+  prompt_hash   text NOT NULL,
+  criado_em     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE analytics.insight_evidence (
+  insight_id  uuid NOT NULL REFERENCES analytics.insight,
+  tipo        text NOT NULL CHECK (tipo IN ('signal','series_point','item','insight')),
+  ref_id      text NOT NULL,
+  papel       text NOT NULL CHECK (papel IN ('base','exemplo','contraexemplo')),
+  PRIMARY KEY (insight_id, tipo, ref_id)
+);</pre>
+
+  <h2 id="sa-b">B Contrato RawItem</h2>
+  <p>Todo coletor, próprio ou Apify, devolve este objeto. É a única fronteira entre a coleta e o resto do pipeline.</p>
+<pre>from datetime import datetime
+from typing import Literal
+from pydantic import BaseModel, HttpUrl
+
+class RawItem(BaseModel):
+    source_id: str
+    run_id: str
+    url: HttpUrl
+    coletor: Literal["own_http", "own_js", "apify"]
+    coletado_em: datetime
+    publicado_em: datetime | None = None
+    autor: str | None = None            # sai da normalização como autor_hash
+    texto: str
+    idioma_declarado: str | None = None
+    metricas: dict[str, int] = {}
+    payload_uri: str                    # onde o payload original foi gravado</pre>
+
+  <h2 id="sa-c">C Glossário</h2>
+  <table class="w-narrow">
+    <thead><tr><th style="width:20%">Termo</th><th>Significado</th></tr></thead>
+    <tbody>
+      <tr><td>Actor</td><td>Programa de coleta publicado na Store do Apify e executado na plataforma deles.</td></tr>
+      <tr><td>Canário</td><td>Execução diária de cada scraper contra o site real, para detectar mudança de layout.</td></tr>
+      <tr><td>Cobertura</td><td>Fração das coletas esperadas de uma fonte, num dia, que terminaram com sucesso.</td></tr>
+      <tr><td>Conjunto de referência</td><td>Itens rotulados à mão, usados para medir o F1 e calibrar τ.</td></tr>
+      <tr><td>Dedupe</td><td>Agrupamento de itens idênticos ou quase idênticos, como repostagens.</td></tr>
+      <tr><td>F1</td><td>Medida que combina precisão e abrangência de um classificador.</td></tr>
+      <tr><td>Gate</td><td>Verificação que bloqueia a etapa seguinte quando não passa.</td></tr>
+      <tr><td>HMAC</td><td>Hash com segredo. Impede reverter o hash do autor sem a chave do projeto.</td></tr>
+      <tr><td>Jev</td><td>Modelo de decisão da TypeSafe, que responde perguntas fechadas com probabilidade.</td></tr>
+      <tr><td>MAD</td><td>Desvio absoluto mediano, medida de dispersão resistente a valores extremos.</td></tr>
+      <tr><td>N0 a N5</td><td>Os seis níveis do motor de análise, de item rotulado a relatório.</td></tr>
+      <tr><td>Payload</td><td>Conteúdo bruto devolvido pela fonte, antes de qualquer limpeza.</td></tr>
+      <tr><td>Peça</td><td>Unidade produzida por um nível (rótulo, ponto de série, sinal, insight, relatório).</td></tr>
+      <tr><td>Share</td><td>Parcela de um tema ou marca no total de itens relevantes da mesma fonte e dia.</td></tr>
+      <tr><td>Sinal</td><td>Mudança relevante detectada em código numa série.</td></tr>
+      <tr><td>τ (tau)</td><td>Limiar de confiança abaixo do qual o rótulo do Jev ganha segunda opinião.</td></tr>
+      <tr><td>Trilha</td><td>Caminho de coleta de uma fonte: própria HTTP, própria com navegador, Apify ou fora do MVP.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sa-d">D Fontes consultadas</h2>
+  <ul class="note" style="padding-left:12pt">
+    <li>Plano revisado de 13/10/2026 (documento do projeto): marcos, datas, orçamento e dependências do Grupo.</li>
+    <li><a href="https://daleseo.com/jev/">Jev: tipos de pergunta, limites e avisos (daleseo.com)</a></li>
+    <li><a href="https://zuplo.com/docs/ai-gateway/jev.md">Jev: endpoint, versões do modelo e preço (documentação da Zuplo)</a></li>
+    <li><a href="https://platform.claude.com/docs/en/build-with-claude/data-residency">Claude API: residência de dados</a></li>
+    <li><a href="https://use-apify.com/docs/what-is-apify/apify-pricing">Apify: preços (guia independente, verificado em 09/09/2026)</a></li>
+    <li><a href="https://spider.cloud/blog/developers-guide-choosing-scraping-stack-2026/">Guia de stack de scraping (blog da Spider, com viés comercial)</a></li>
+    <li><a href="https://techcrunch.com/2024/01/24/court-rules-in-favor-of-a-web-scraper-bright-data-which-meta-had-used-and-then-sued">Meta x Bright Data (TechCrunch, 2024)</a></li>
+  </ul>
+  <p class="note">Preços e limites vêm de páginas de terceiros e podem mudar. Valores de custo devem ser revalidados nos sites oficiais antes de entrarem no orçamento.</p>
+</section>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!-- ================= 3 MODELO DE DADOS ================= -->
+<section class="sec" id="s3">
+  <h1>3 Modelo de dados</h1>
+  <p class="lead">Uma zona bruta em armazenamento de objetos e quatro schemas no Postgres. O que é calculado pode ser refeito; o que foi rotulado ou escrito por modelo é versionado e nunca sobrescrito.</p>
+
+  <h2 id="s3-1">3.1 Visão geral</h2>
+  <table class="compact">
+    <thead><tr><th style="width:17%">Zona</th><th style="width:20%">Onde</th><th style="width:34%">O que guarda</th><th>Regra de escrita</th></tr></thead>
+    <tbody>
+      <tr><td>Bruta</td><td>Armazenamento de objetos (compatível com S3)</td><td>Payload original de cada coleta.</td><td>Imutável. Retenção curta, com prazo a definir com o jurídico.</td></tr>
+      <tr><td><code>core</code></td><td>Postgres</td><td>Fontes, execuções de coleta, itens, rótulos, taxonomia e versões de modelo.</td><td>Itens se atualizam pela chave determinística. Rótulos só são acrescentados.</td></tr>
+      <tr><td><code>analytics</code></td><td>Postgres</td><td>Séries, sinais, insights, evidências e relatórios.</td><td>Séries e sinais são recalculáveis a partir de <code>core</code>. Insights são versionados e nunca apagados, só marcados como obsoletos.</td></tr>
+      <tr><td><code>gov</code></td><td>Postgres</td><td>Conjunto de referência, execuções de avaliação, fila de revisão e custos.</td><td>Só acrescentar.</td></tr>
+      <tr><td><code>bi</code></td><td>Postgres, somente leitura</td><td>Views estáveis para o Power BI e para o relatório.</td><td>Sem dados próprios. Mudar uma view exige aviso a quem a consome.</td></tr>
+    </tbody>
+  </table>
+  <p>As regras da seção 3.2 sustentam o modelo: chaves determinísticas, rótulos e insights só acrescentados, versão de modelo em toda linha produzida por modelo, cobertura em cada ponto de série e autor sempre em hash.</p>
+
+  <h2 id="s3-2">3.2 Regras de dados</h2>
+  <table class="compact">
+    <thead><tr><th style="width:15%">Tema</th><th style="width:44%">Regra</th><th>Por quê</th></tr></thead>
+    <tbody>
+      <tr><td>Idempotência</td><td><code>item_id</code> é determinístico. Recoletar atualiza a linha, não duplica.</td><td>Coleta repetida e reprocessamento ficam seguros.</td></tr>
+      <tr><td>Duplicatas</td><td>O texto normalizado gera <code>texto_hash</code>. Quase-duplicatas, como repostagens, entram no mesmo <code>dedupe_grupo</code>.</td><td>Uma frase repostada mil vezes não pode parecer mil opiniões. O volume conta grupos distintos e o alcance fica em <code>metricas</code>.</td></tr>
+      <tr><td>Rótulos</td><td>Só acrescentar. O vigente sai de <code>label_current</code>.</td><td>Permite comparar versões do Jev e do Claude e voltar atrás.</td></tr>
+      <tr><td>Texto que muda</td><td>Se <code>texto_hash</code> muda, os rótulos antigos deixam de valer e o item é rotulado de novo.</td><td>Rótulo sobre texto desatualizado distorce a série.</td></tr>
+      <tr><td>Autor</td><td><code>autor_hash</code> usa HMAC com segredo do projeto. O identificador original nunca vai para <code>core</code>.</td><td>Minimiza dado pessoal. Quem pedir exclusão pode ser localizado recalculando o HMAC do identificador que informar.</td></tr>
+      <tr><td>Payload bruto</td><td>Pode conter o identificador do autor, então tem retenção curta e acesso restrito. Prazo a definir com o jurídico.</td><td>É o único lugar com dado mais identificável.</td></tr>
+      <tr><td>Tempo</td><td>Tudo em UTC. <code>publicado_em</code> define o dia da série.</td><td>Coletar atrasado não muda o passado.</td></tr>
+      <tr><td>Cobertura</td><td>Cada ponto de série guarda a <code>cobertura</code> do dia. Abaixo do limiar, o sinal é suprimido.</td><td>Uma queda de coleta não pode virar &ldquo;vale&rdquo; de tendência.</td></tr>
+      <tr><td>Reprocessamento</td><td>Trocar modelo, taxonomia ou prompt marca como <code>obsoleto</code> só o que dependia deles, nas janelas afetadas.</td><td>Refazer apenas o necessário (seção 4.7).</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Nada nesta seção é parecer jurídico. Retenção, base legal e tratamento de pedidos de titulares devem ser definidos com o jurídico do Grupo e da IAgentics.</p>
+</section>
+
+<section class="wide" id="s3-3">
+  <h2>3.3 Diagrama de entidades</h2>
+  <figure>
+    {{FIG4}}
+    <div class="legend">
+      <span><i class="sw"></i>coleta e dado</span>
+      <span><i class="sw is-ana"></i>análise</span>
+      <span><i class="sw is-gov"></i>governança</span>
+    </div>
+    <figcaption><b>Figura 4.</b> As setas mostram o sentido da derivação: de onde o dado vem e para onde vai. Chaves estrangeiras que não aparecem como linha estão nas colunas (<code>FK</code>). Cada caixa mostra só os campos principais; o dicionário completo das entidades centrais está na seção 3.4 e a DDL no Anexo A.</figcaption>
+  </figure>
+</section>
+
+<section class="sec" id="s3-4">
+  <h2 style="margin-top:0">3.4 Dicionário das entidades centrais</h2>
+  <p>As seis entidades que carregam o raciocínio do sistema. As demais estão resumidas ao final.</p>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>core.item</code> · uma publicação, comentário ou matéria, já limpa e deduplicada</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>item_id</td><td>text PK</td><td>sha256 de <code>source_id</code> mais a URL canônica. A mesma publicação coletada duas vezes vira a mesma linha.</td></tr>
+      <tr><td>source_id</td><td>text FK</td><td>Fonte de origem (<code>core.source</code>).</td></tr>
+      <tr><td>raw_id</td><td>uuid FK</td><td>Payload da última coleta (<code>core.raw_item</code>).</td></tr>
+      <tr><td>publicado_em</td><td>timestamptz</td><td>Horário de publicação na fonte, em UTC. Define o dia da série.</td></tr>
+      <tr><td>coletado_em</td><td>timestamptz</td><td>Primeira coleta. Serve só à operação.</td></tr>
+      <tr><td>idioma</td><td>text</td><td>Código ISO 639-1 detectado.</td></tr>
+      <tr><td>texto</td><td>text</td><td>Texto limpo. É o que vai para o Jev.</td></tr>
+      <tr><td>texto_hash</td><td>text</td><td>sha256 do texto normalizado. Os rótulos apontam para ele.</td></tr>
+      <tr><td>autor_hash</td><td>text</td><td>HMAC-SHA256 do identificador do autor com segredo do projeto. Nunca o identificador.</td></tr>
+      <tr><td>dedupe_grupo</td><td>text</td><td>Agrupa quase-duplicatas, como repostagens. O volume conta grupos, não linhas.</td></tr>
+      <tr><td>metricas</td><td>jsonb</td><td>Curtidas, comentários e compartilhamentos, quando a fonte informa.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>core.label</code> · resposta de um classificador a uma pergunta sobre um item (só acrescenta)</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>label_id</td><td>uuid PK</td><td>Identificador do rótulo.</td></tr>
+      <tr><td>item_id</td><td>text FK</td><td>Item rotulado.</td></tr>
+      <tr><td>texto_hash</td><td>text</td><td>Texto sobre o qual a resposta foi dada. Se o texto do item mudar, o rótulo deixa de valer.</td></tr>
+      <tr><td>pergunta</td><td>text</td><td><code>relevante</code>, <code>tema</code>, <code>marca</code> ou <code>sentimento</code>.</td></tr>
+      <tr><td>resposta</td><td>text</td><td>Valor escolhido: id da taxonomia, 0 ou 1, ou nota de 1 a 5.</td></tr>
+      <tr><td>prob</td><td>jsonb</td><td>Probabilidades por opção, como o classificador devolveu.</td></tr>
+      <tr><td>confianca</td><td>real</td><td>De 0 a 1, informada pelo classificador. Em perguntas de sim ou não, derivada da probabilidade.</td></tr>
+      <tr><td>origem</td><td>text</td><td><code>jev</code>, <code>claude</code> ou <code>humano</code>.</td></tr>
+      <tr><td>modelo_id</td><td>int FK</td><td>Modelo e versão fixa que responderam (<code>core.model_version</code>).</td></tr>
+      <tr><td>criado_em</td><td>timestamptz</td><td>A view <code>core.label_current</code> devolve a resposta vigente por item e pergunta: humano primeiro, depois a mais recente sobre o texto atual.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>analytics.series_point</code> · agregado diário por tema, marca e fonte (N1, recalculável)</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>dia</td><td>date</td><td>Em UTC, a partir de <code>publicado_em</code>. Semana e mês saem por views.</td></tr>
+      <tr><td>tema_id, marca_id</td><td>int FK</td><td>Taxonomia. <code>marca_id</code> nulo significa item sem marca identificada.</td></tr>
+      <tr><td>source_id</td><td>text FK</td><td>Fonte. Séries nunca misturam fontes antes da agregação final.</td></tr>
+      <tr><td>volume</td><td>int</td><td>Grupos distintos (<code>dedupe_grupo</code>) com <code>relevante</code> igual a sim.</td></tr>
+      <tr><td>share</td><td>real</td><td>Volume dividido pelo total relevante da mesma fonte no dia. Base dos picos e vales.</td></tr>
+      <tr><td>sentimento_medio</td><td>real</td><td>Média da nota de sentimento (escala de 5 níveis) dos rótulos com confiança acima do limiar.</td></tr>
+      <tr><td>engajamento</td><td>bigint</td><td>Soma de interações, quando a fonte informa. Só comparável dentro da mesma fonte.</td></tr>
+      <tr><td>cobertura</td><td>real</td><td>Coletas concluídas dividido por coletas esperadas daquela fonte no dia, de 0 a 1.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>analytics.signal</code> · algo que mudou de forma relevante (N2, detectado em código)</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>signal_id</td><td>uuid PK</td><td>Identificador do sinal.</td></tr>
+      <tr><td>tipo</td><td>text</td><td><code>pico</code>, <code>vale</code>, <code>patamar</code>, <code>emergencia</code> ou <code>divergencia</code>.</td></tr>
+      <tr><td>escopo</td><td>jsonb</td><td>Tema, marca e, quando couber, fonte.</td></tr>
+      <tr><td>periodo</td><td>daterange</td><td>Dias em que o sinal vale.</td></tr>
+      <tr><td>magnitude, z_robusto</td><td>real</td><td>Variação sobre a linha de base e desvio robusto (mediana e MAD).</td></tr>
+      <tr><td>itens_distintos</td><td>int</td><td>Tamanho da amostra por trás do sinal.</td></tr>
+      <tr><td>cobertura_ok</td><td>boolean</td><td>Falso suprime o sinal: ele aparece como &ldquo;dados incompletos&rdquo; e não vira insight.</td></tr>
+      <tr><td>prioridade</td><td>real</td><td>Pontuação que decide o que vai ao Claude (seção 4.3).</td></tr>
+      <tr><td>metodo_versao</td><td>text</td><td>Versão do detector que gerou o sinal.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>analytics.insight</code> · texto gerado pelo Claude, com evidências (N3, N4 e N5)</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>insight_id</td><td>uuid PK</td><td>Identificador do insight.</td></tr>
+      <tr><td>nivel</td><td>text</td><td><code>N3</code>, <code>N4</code> ou <code>N5</code>.</td></tr>
+      <tr><td>escopo</td><td>jsonb</td><td>Tema, marca ou portfólio.</td></tr>
+      <tr><td>texto</td><td>text</td><td>Texto que passou pelos validadores.</td></tr>
+      <tr><td>saida_json</td><td>jsonb</td><td>Resposta estruturada original do Claude, guardada como veio.</td></tr>
+      <tr><td>payload_hash</td><td>text</td><td>Hash do pacote de contexto enviado, para reconstruir a chamada.</td></tr>
+      <tr><td>confianca</td><td>text</td><td><code>baixa</code>, <code>media</code> ou <code>alta</code>, calculada em código (seção 4.7). O Claude não define.</td></tr>
+      <tr><td>status</td><td>text</td><td><code>rascunho</code>, <code>revisado</code>, <code>publicado</code> ou <code>obsoleto</code>.</td></tr>
+      <tr><td>modelo_id, prompt_hash</td><td>int FK, text</td><td>Modelo e hash do arquivo de prompt usados.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="dict"><colgroup><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th colspan="3"><code>analytics.insight_evidence</code> · liga cada insight às peças que o sustentam</th></tr><tr><th>Campo</th><th>Tipo</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>insight_id</td><td>uuid FK</td><td>Insight que cita a evidência.</td></tr>
+      <tr><td>tipo</td><td>text</td><td><code>signal</code>, <code>series_point</code>, <code>item</code> ou <code>insight</code> (um N5 cita N3 e N4).</td></tr>
+      <tr><td>ref_id</td><td>text</td><td>Identificador da peça citada. Referência polimórfica, validada por rotina.</td></tr>
+      <tr><td>papel</td><td>text</td><td><code>base</code> (sustenta), <code>exemplo</code> (ilustra) ou <code>contraexemplo</code> (relativiza). Chave primária: os três primeiros campos.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Demais entidades</h3>
+  <table>
+    <thead><tr><th style="width:17%">Entidade</th><th style="width:36%">Para que serve</th><th>Campos principais</th></tr></thead>
+    <tbody>
+      <tr><td><code>core.source</code></td><td>Cadastro de fontes; espelha o catálogo.</td><td>source_id, nome, trilha, cadencia, status_juridico, ativo</td></tr>
+      <tr><td><code>core.collector_run</code></td><td>Uma execução de coleta.</td><td>run_id, source_id, iniciado_em, concluido_em, status, itens_coletados, erros</td></tr>
+      <tr><td><code>core.raw_item</code></td><td>Referência ao payload original no armazenamento de objetos.</td><td>raw_id, run_id, uri_objeto, hash_payload, coletado_em</td></tr>
+      <tr><td><code>core.taxonomy</code></td><td>Temas, marcas e produtos, hierárquicos e versionados.</td><td>tax_id, tipo, nome, pai_id, versao</td></tr>
+      <tr><td><code>core.model_version</code></td><td>Modelo e versão fixa usados em rótulos e insights.</td><td>modelo_id, provedor, nome, versao_fixa, parametros, ativo</td></tr>
+      <tr><td><code>analytics.report</code></td><td>Relatório de um ciclo. Uma tabela de ligação (<code>report_insight</code>) guarda a ordem dos insights.</td><td>report_id, periodo, tipo, status, publicado_em</td></tr>
+      <tr><td><code>gov.eval_label</code></td><td>Rótulo de ouro do conjunto de referência.</td><td>set_id, item_id, pergunta, resposta_ouro, rotulador</td></tr>
+      <tr><td><code>gov.eval_run</code></td><td>Resultado de uma avaliação de modelo.</td><td>run_id, modelo_id, set_id, f1 por pergunta, custo, rodado_em</td></tr>
+      <tr><td><code>gov.review_task</code></td><td>Fila de revisão humana, de rótulos e de insights.</td><td>task_id, tipo, ref_id, motivo, status, revisor, resolvido_em</td></tr>
+      <tr><td><code>gov.cost_ledger</code></td><td>Custo por chamada e por execução, para Apify, Jev e Claude.</td><td>id, provedor, run_id ou ref, unidade, quantidade, custo_usd, em</td></tr>
+    </tbody>
+  </table>
+</section>
+

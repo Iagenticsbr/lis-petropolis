@@ -1,0 +1,46 @@
+<svg class="f3" viewBox="0 0 1070 260" role="img" aria-label="Esteira do pull request até a produção, com um gate de F1 antes da imagem e um canário diário que avisa quando o site de uma fonte muda.">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+
+      <text class="t2 s" x="128" y="16">integração contínua, a cada pull request</text>
+      <path class="edge soft" d="M128 24 H586"/>
+      <text class="t2 s" x="600" y="16">implantação, por ambiente</text>
+      <path class="edge soft" d="M600 24 H1058"/>
+
+      <rect class="box" x="10" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="62" y="60">Pull request</text><text class="t2 c" x="62" y="78">revisão por par</text>
+      <path class="edge" d="M114 66 H128" marker-end="url(#a3)"/>
+      <rect class="box" x="128" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="180" y="60">Lint e tipos</text><text class="t2 c" x="180" y="78">ruff, mypy</text>
+      <path class="edge" d="M232 66 H246" marker-end="url(#a3)"/>
+      <rect class="box" x="246" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="298" y="60">Teste de coleta</text><text class="t2 c" x="298" y="78">HTML gravado</text>
+      <path class="edge" d="M350 66 H364" marker-end="url(#a3)"/>
+      <rect class="box" x="364" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="416" y="60">Contrato</text><text class="t2 c" x="416" y="78">RawItem válido</text>
+      <path class="edge" d="M468 66 H482" marker-end="url(#a3)"/>
+      <rect class="key" x="482" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="534" y="60">Gate de F1</text><text class="t2 c" x="534" y="78">bloqueia se cair</text>
+      <path class="edge" d="M586 66 H600" marker-end="url(#a3)"/>
+      <rect class="box" x="600" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="652" y="60">Imagem Docker</text><text class="t2 c" x="652" y="78">versão fixa</text>
+      <path class="edge" d="M704 66 H718" marker-end="url(#a3)"/>
+      <rect class="box" x="718" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="770" y="60">dev</text><text class="t2 c" x="770" y="78">deploy automático</text>
+      <path class="edge" d="M822 66 H836" marker-end="url(#a3)"/>
+      <rect class="box" x="836" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="888" y="60">staging</text><text class="t2 c" x="888" y="78">dados reais</text>
+      <path class="edge" d="M940 66 H954" marker-end="url(#a3)"/>
+      <rect class="box" x="954" y="34" width="104" height="64" rx="6"/>
+      <text class="c" x="1006" y="60">produção</text><text class="t2 c" x="1006" y="78">aprovação manual</text>
+
+      <rect class="box" x="130" y="170" width="210" height="70" rx="6"/>
+      <text class="c" x="235" y="194">Canário diário</text>
+      <text class="t2 c" x="235" y="212">roda contra o site real</text>
+      <text class="t2 c" x="235" y="228">falhou 2x: abre issue no Linear</text>
+      <path class="edge" d="M270 170 V98" marker-end="url(#a3)"/>
+      <text class="t2 s" x="278" y="140">seletor mudou? atualiza o HTML gravado</text>
+
+      <rect class="box" x="442" y="170" width="184" height="60" rx="6"/>
+      <text class="c" x="534" y="194">Conjunto de referência</text><text class="t2 c" x="534" y="212">evals/, rodado no gate</text>
+      <path class="edge" d="M534 170 V98" marker-end="url(#a3)"/>
+    </svg>

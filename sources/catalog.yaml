@@ -1,0 +1,27 @@
+# Catálogo de fontes do LIS.
+#
+# Cada fonte tem uma trilha de coleta, decidida por quatro perguntas, nesta ordem:
+#   1. É público e sem login?
+#   2. Os termos de uso e o robots.txt permitem, ou o jurídico do Grupo liberou?
+#   3. Há defesa ativa contra robôs?
+#   4. O conteúdo precisa de JavaScript?
+#
+# trilha:           own_http | own_js | apify | fora_mvp
+# status_juridico:  liberado | pendente | negado
+#
+# Cada entrada vira uma linha em core.source na implantação (ver docs/dados/schema.sql).
+# Mudar a trilha de uma fonte é editar este arquivo e trocar o módulo de coleta.
+#
+# Status: sem fontes reais ainda. O catálogo v1 (marco M0) depende da aprovação das fontes
+# pelo Grupo. O bloco abaixo é só um exemplo do formato e não é uma fonte real.
+
+sources: []
+
+# Exemplo (descomente e ajuste para criar a primeira fonte):
+#
+# - id: portal-exemplo
+#   nome: Portal de notícias de bebidas (exemplo)
+#   trilha: own_http
+#   cadencia: 6h
+#   status_juridico: liberado
+#   robots_ok: true

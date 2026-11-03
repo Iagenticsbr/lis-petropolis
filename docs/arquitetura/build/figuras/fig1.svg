@@ -1,0 +1,101 @@
+<svg class="f1" viewBox="0 0 1220 600" role="img" aria-label="Pipeline da coleta à entrega: três tipos de coletor emitem o mesmo contrato, que passa por normalização, classificação, agregação, síntese e validação; Apify, Jev e Claude ficam fora do ambiente.">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+
+      <rect class="env" x="270" y="100" width="940" height="400" rx="10"/>
+      <text class="t2 s" x="285" y="486">Nosso ambiente: containers, Postgres e armazenamento de objetos, implantável em qualquer nuvem com Terraform</text>
+
+      <!-- fontes -->
+      <rect class="src" x="10" y="160" width="120" height="56" rx="6"/>
+      <text class="c" x="70" y="184">Fontes abertas</text><text class="t2 c" x="70" y="202">notícias, blogs, RSS</text>
+      <rect class="src" x="10" y="236" width="120" height="56" rx="6"/>
+      <text class="c" x="70" y="260">Sites com JS</text><text class="t2 c" x="70" y="278">varejo, fóruns</text>
+      <rect class="src" x="10" y="312" width="120" height="56" rx="6"/>
+      <text class="c" x="70" y="336">Redes sociais</text><text class="t2 c" x="70" y="354">Instagram, TikTok, X</text>
+
+      <text class="t2 c" x="207" y="181">HTTP público</text>
+      <path class="edge" d="M130 188 H285" marker-end="url(#a1)"/>
+      <text class="t2 c" x="207" y="257">páginas dinâmicas</text>
+      <path class="edge" d="M130 264 H285" marker-end="url(#a1)"/>
+      <path class="edge" d="M130 340 H150" marker-end="url(#a1)"/>
+
+      <!-- Apify (externo) -->
+      <rect class="ext" x="150" y="312" width="100" height="56" rx="6"/>
+      <text class="c" x="200" y="336">Apify</text><text class="t2 c" x="200" y="354">actors</text>
+      <path class="edge" d="M250 340 H285" marker-end="url(#a1)"/>
+
+      <!-- coletores -->
+      <rect class="box" x="285" y="160" width="108" height="56" rx="6"/>
+      <text class="c" x="339" y="184">Scraper HTTP</text><text class="t2 c" x="339" y="202">httpx, Scrapy</text>
+      <rect class="box" x="285" y="236" width="108" height="56" rx="6"/>
+      <text class="c" x="339" y="260">Scraper JS</text><text class="t2 c" x="339" y="278">Playwright</text>
+      <rect class="box" x="285" y="312" width="108" height="56" rx="6"/>
+      <text class="c" x="339" y="336">Adaptador Apify</text><text class="t2 c" x="339" y="354">dispara o actor</text>
+
+      <text class="t2 c" x="418" y="176">RawItem</text>
+      <path class="edge" d="M393 188 H418 V264"/>
+      <path class="edge" d="M393 340 H418 V264"/>
+      <path class="edge" d="M393 264 H443" marker-end="url(#a1)"/>
+
+      <!-- normalizar + zona bruta -->
+      <rect class="box" x="443" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="497" y="250">Normalizar</text><text class="t2 c" x="497" y="268">idioma, dedupe</text><text class="t2 c" x="497" y="284">autor em hash</text>
+      <path class="edge soft" d="M497 312 V348" marker-end="url(#a1)"/>
+      <text class="t2 s" x="505" y="334">grava</text>
+      <path class="box" d="M443 360 v40 a54 12 0 0 0 108 0 v-40"/>
+      <ellipse class="box" cx="497" cy="360" rx="54" ry="12"/>
+      <text class="c" x="497" y="388">Zona bruta</text><text class="t2 c" x="497" y="404">payload original</text>
+
+      <path class="edge" d="M551 264 H571" marker-end="url(#a1)"/>
+
+      <!-- classificar -->
+      <rect class="key" x="571" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="625" y="250">Classificar</text><text class="t2 c" x="625" y="268">relevância, tema</text><text class="t2 c" x="625" y="284">sentimento</text>
+      <path class="edge" d="M679 264 H699" marker-end="url(#a1)"/>
+
+      <!-- agregar -->
+      <rect class="box" x="699" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="753" y="250">Agregar</text><text class="t2 c" x="753" y="268">séries por tema</text><text class="t2 c" x="753" y="284">picos e vales</text>
+      <path class="edge" d="M807 264 H827" marker-end="url(#a1)"/>
+
+      <!-- sintetizar -->
+      <rect class="box" x="827" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="881" y="250">Sintetizar</text><text class="t2 c" x="881" y="268">insights em texto</text><text class="t2 c" x="881" y="284">cita os itens</text>
+      <path class="edge" d="M935 264 H955" marker-end="url(#a1)"/>
+
+      <!-- validar -->
+      <rect class="key" x="955" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="1009" y="240">Validar</text><text class="t2 c" x="1009" y="258">cada número do</text><text class="t2 c" x="1009" y="272">texto existe nos</text><text class="t2 c" x="1009" y="286">agregados?</text>
+      <path class="edge" d="M1063 264 H1083" marker-end="url(#a1)"/>
+
+      <!-- entregar -->
+      <rect class="box" x="1083" y="216" width="108" height="96" rx="6"/>
+      <text class="c" x="1137" y="250">Entregar</text><text class="t2 c" x="1137" y="268">relatório PDF/HTML</text><text class="t2 c" x="1137" y="284">views SQL</text>
+
+      <!-- postgres -->
+      <path class="box" d="M571 380 v40 a182 12 0 0 0 364 0 v-40"/>
+      <ellipse class="box" cx="753" cy="380" rx="182" ry="12"/>
+      <text class="c" x="753" y="404">Postgres</text>
+      <text class="t2 c" x="753" y="420">itens, rótulos, séries e a versão do modelo que rotulou</text>
+      <path class="edge soft" d="M625 371 V312" marker-start="url(#a1)" marker-end="url(#a1)"/>
+      <path class="edge soft" d="M753 368 V312" marker-start="url(#a1)" marker-end="url(#a1)"/>
+      <path class="edge soft" d="M881 371 V312" marker-start="url(#a1)" marker-end="url(#a1)"/>
+      <text class="t2 s" x="761" y="344">lê e grava</text>
+
+      <!-- Jev (externo) -->
+      <rect class="ext" x="555" y="15" width="140" height="60" rx="6"/>
+      <text class="c" x="625" y="40">Jev (TypeSafe)</text><text class="t2 c" x="625" y="58">classificação rápida</text>
+      <path class="edge" d="M625 75 V216" marker-start="url(#a1)" marker-end="url(#a1)"/>
+      <text class="t2 s" x="635" y="150">item ↓</text><text class="t2 s" x="635" y="166">rótulo + probabilidade ↑</text>
+
+      <!-- Claude (externo) -->
+      <rect class="ext" x="811" y="15" width="140" height="60" rx="6"/>
+      <text class="c" x="881" y="40">Claude (Anthropic)</text><text class="t2 c" x="881" y="58">só agregados e exemplos</text>
+      <path class="edge" d="M881 75 V216" marker-start="url(#a1)" marker-end="url(#a1)"/>
+      <text class="t2 s" x="891" y="150">agregados + exemplos ↓</text><text class="t2 s" x="891" y="166">insights ↑</text>
+
+      <!-- Power BI (externo) -->
+      <path class="edge" d="M1137 312 V530" marker-end="url(#a1)"/>
+      <text class="t2 e" x="1129" y="430">lê as views</text>
+      <rect class="ext" x="1083" y="530" width="108" height="56" rx="6"/>
+      <text class="c" x="1137" y="554">Power BI</text><text class="t2 c" x="1137" y="572">do Grupo</text>
+    </svg>

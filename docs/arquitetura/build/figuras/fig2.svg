@@ -1,0 +1,45 @@
+<svg class="f2" viewBox="0 0 1000 400" role="img" aria-label="O Jev classifica cada item; acima do limiar de confiança o rótulo é gravado, abaixo disso o Claude dá uma segunda opinião e, se discordar, o item vai para revisão humana, que realimenta o conjunto de referência.">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+
+      <rect class="box" x="10" y="110" width="120" height="60" rx="6"/>
+      <text class="c" x="70" y="136">Item</text><text class="t2 c" x="70" y="154">normalizado</text>
+      <path class="edge" d="M130 140 H160" marker-end="url(#a2)"/>
+
+      <rect class="ext" x="160" y="100" width="190" height="80" rx="6"/>
+      <text class="c" x="255" y="124">Jev, versão fixa</text>
+      <text class="t2 c" x="255" y="142">4 perguntas por item:</text>
+      <text class="t2 c" x="255" y="157">relevante, tema, marca,</text>
+      <text class="t2 c" x="255" y="172">sentimento</text>
+      <path class="edge" d="M350 140 H370" marker-end="url(#a2)"/>
+
+      <polygon class="key" points="455,85 540,140 455,195 370,140"/>
+      <text class="c" x="455" y="136">confiança</text><text class="c" x="455" y="152">≥ τ ?</text>
+
+      <path class="edge" d="M540 140 H580 V60 H620" marker-end="url(#a2)"/>
+      <text class="t2 c" x="560" y="132">sim</text>
+      <rect class="box" x="620" y="30" width="200" height="60" rx="6"/>
+      <text class="c" x="720" y="54">Gravar rótulo</text><text class="t2 c" x="720" y="72">modelo, versão, probabilidades</text>
+
+      <path class="edge" d="M455 195 V250 H620" marker-end="url(#a2)"/>
+      <text class="t2 s" x="463" y="222">não</text>
+      <rect class="ext" x="620" y="220" width="200" height="60" rx="6"/>
+      <text class="c" x="720" y="244">Claude pequeno</text><text class="t2 c" x="720" y="262">2ª opinião, saída estruturada</text>
+      <path class="edge" d="M820 250 H830" marker-end="url(#a2)"/>
+
+      <polygon class="key" points="905,200 980,250 905,300 830,250"/>
+      <text class="c" x="905" y="254">concorda?</text>
+      <path class="edge" d="M905 200 V60 H820" marker-end="url(#a2)"/>
+      <text class="t2 e" x="897" y="130">sim, grava com a origem</text>
+      <path class="edge" d="M905 300 V330" marker-end="url(#a2)"/>
+      <text class="t2 s" x="913" y="320">não</text>
+
+      <rect class="box" x="780" y="330" width="200" height="50" rx="6"/>
+      <text class="c" x="880" y="352">Fila de revisão humana</text><text class="t2 c" x="880" y="369">o time rotula à mão</text>
+
+      <path class="edge" d="M780 355 H560" marker-end="url(#a2)"/>
+      <text class="t2 c" x="670" y="347">rótulo humano</text>
+      <rect class="box" x="330" y="326" width="230" height="54" rx="6"/>
+      <text class="c" x="445" y="350">Conjunto de referência</text><text class="t2 c" x="445" y="368">recalibra τ e alimenta o gate</text>
+      <path class="edge soft" d="M400 326 V162" marker-end="url(#a2)"/>
+      <text class="t2 e" x="392" y="260">recalibra τ</text>
+    </svg>

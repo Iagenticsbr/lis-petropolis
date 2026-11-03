@@ -1,0 +1,258 @@
+<!-- ================= 4 MOTOR DE ANÁLISE ================= -->
+<section class="sec" id="s4">
+  <h1>4 Motor de análise por níveis</h1>
+  <p class="lead">O &ldquo;puzzle&rdquo; de IA: como um item coletado vira, passo a passo, uma frase de relatório que dá para desmontar até o post original.</p>
+
+  <h2 id="s4-1">4.1 A ideia do puzzle</h2>
+  <p>Cada nível produz peças de um tipo. Uma peça só se encaixa em peças do nível logo abaixo, e cada encaixe fica registrado. No fim, qualquer frase do relatório pode ser desmontada até o conteúdo coletado. Três regras governam o motor:</p>
+  <ul>
+    <li><strong>Subir de nível reduz o volume e aumenta a interpretação.</strong> Milhares de itens viram dezenas de sinais e, no topo, um relatório.</li>
+    <li><strong>O texto gerado por LLM só aparece onde interpretar é necessário</strong> (N3 em diante), sobre peças que já passaram por validação. Contar, somar e detectar não são trabalho para ele. A única exceção é a segunda opinião do Claude pequeno no N0, que só escolhe uma opção do esquema.</li>
+    <li><strong>Peça sem evidência não sobe.</strong> Um sinal sem cobertura suficiente ou um insight sem citação fica no nível onde está.</li>
+  </ul>
+
+  <table>
+    <thead><tr><th style="width:7%">Nível</th><th style="width:26%">Pergunta que responde</th><th style="width:25%">Peça</th><th style="width:22%">Consumidor</th><th>Cadência</th></tr></thead>
+    <tbody>
+      <tr><td>N0</td><td>O que foi dito?</td><td>Item rotulado (<code>label</code>)</td><td>Analista e auditoria</td><td>Contínua</td></tr>
+      <tr><td>N1</td><td>Quanto, onde e com que tom?</td><td>Ponto de série (<code>series_point</code>)</td><td>Analista e Power BI</td><td>Diária</td></tr>
+      <tr><td>N2</td><td>O que mudou de forma relevante?</td><td>Sinal (<code>signal</code>)</td><td>Analista de tendências</td><td>Diária e semanal</td></tr>
+      <tr><td>N3</td><td>Por que mudou? (hipóteses)</td><td>Insight local (<code>insight</code>, N3)</td><td>Analista e equipe do LIS</td><td>Semanal</td></tr>
+      <tr><td>N4</td><td>O que se conecta com o quê?</td><td>Insight cruzado (<code>insight</code>, N4)</td><td>LIS e inovação</td><td>Por ciclo, fase 2</td></tr>
+      <tr><td>N5</td><td>O que o Grupo deve saber e fazer?</td><td>Relatório (<code>report</code>)</td><td>Gestores</td><td>Por ciclo</td></tr>
+    </tbody>
+  </table>
+  <p class="note">O tamanho e a data de cada ciclo de entrega são definidos com o Grupo. O plano prevê 2 ciclos antes do handover (M5).</p>
+</section>
+
+<section class="wide" id="s4-2">
+  <h2>4.2 Os seis níveis em um desenho</h2>
+  <figure>
+    {{FIG5}}
+    <div class="legend">
+      <span><i class="sw is-ext"></i>modelo de terceiro: o texto sai do ambiente</span>
+      <span><i class="sw"></i>código nosso (SQL, estatística)</span>
+    </div>
+    <figcaption><b>Figura 5.</b> A largura de cada faixa representa o volume de peças. À direita, quem produz a peça e o que precisa ser verdade para ela subir ao nível seguinte. N4 está desenhado, mas entra depois do M3.</figcaption>
+  </figure>
+</section>
+
+<section class="sec" id="s4-3">
+  <h2 style="margin-top:0">4.3 N0 a N2: o que o Jev e o código produzem</h2>
+
+  <h3>N0 · o item vira rótulos</h3>
+  <p>O Jev responde quatro perguntas fechadas por item. Cada resposta é gravada em <code>core.label</code> com probabilidade, confiança e a versão do modelo.</p>
+  <table>
+    <thead><tr><th style="width:15%">Pergunta</th><th style="width:11%">Tipo Jev</th><th>Opções</th><th style="width:22%">Usada em</th></tr></thead>
+    <tbody>
+      <tr><td><code>relevante</code></td><td><code>noul</code></td><td>Sim ou não: o item trata do portfólio ou dos temas monitorados?</td><td>Filtra tudo o que vem depois</td></tr>
+      <tr><td><code>tema</code></td><td><code>choice</code></td><td>Taxonomia de temas, até 255 opções por pergunta. Se passar disso, duas perguntas: família e tema.</td><td>N1</td></tr>
+      <tr><td><code>marca</code></td><td><code>choice</code></td><td>Marcas e produtos do portfólio, mais &ldquo;nenhuma&rdquo;.</td><td>N1</td></tr>
+      <tr><td><code>sentimento</code></td><td><code>score</code></td><td>Cinco níveis, de muito negativo a muito positivo.</td><td>N1</td></tr>
+    </tbody>
+  </table>
+<pre>{
+  "model": "jev-1.13.0",
+  "state": "&lt;texto do item&gt;",
+  "questions": {
+    "relevante":  {"type": "noul",   "instructions": "O texto trata do portfólio ou dos temas monitorados?"},
+    "tema":       {"type": "choice", "instructions": "Qual é o tema principal?",
+                   "criteria": {"embalagem": "...", "preco": "...", "...": "..."}},
+    "marca":      {"type": "choice", "instructions": "Qual marca do portfólio é citada?",
+                   "criteria": {"marca_a": "...", "nenhuma": "..."}},
+    "sentimento": {"type": "score",  "instructions": "Qual o tom em relação ao tema?",
+                   "criteria": {"1": "muito negativo", "5": "muito positivo"}}
+  }
+}</pre>
+  <p class="note">Formato ilustrativo. Conferir os nomes dos campos na documentação da TypeSafe antes de implementar. As fontes consultadas recomendam perguntas simples e independentes: dupla negação e perguntas em várias etapas pioram a precisão. Itens longos devem ser truncados ou segmentados por causa do limite de contexto.</p>
+
+  <h3>N1 · rótulos viram séries</h3>
+  <p>O grão é <strong>dia × tema × marca × fonte</strong>. Semana e mês saem por views.</p>
+  <table>
+    <thead><tr><th style="width:18%">Métrica</th><th style="width:44%">Definição</th><th>Cuidado</th></tr></thead>
+    <tbody>
+      <tr><td><code>volume</code></td><td>Grupos distintos de itens com <code>relevante</code> igual a sim.</td><td>Repostagens não inflam o volume.</td></tr>
+      <tr><td><code>share</code></td><td><code>volume</code> dividido pelo total relevante da mesma fonte no dia.</td><td>Compensa mudanças na coleta. É a base dos picos e vales.</td></tr>
+      <tr><td><code>sentimento_medio</code></td><td>Média das notas com confiança acima do limiar.</td><td>Poucos itens deixam a média instável: mostrar sempre com o volume.</td></tr>
+      <tr><td><code>engajamento</code></td><td>Soma de interações, quando a fonte informa.</td><td>Não comparável entre fontes.</td></tr>
+      <tr><td><code>cobertura</code></td><td>Coletas concluídas dividido por esperadas no dia.</td><td>Dia com cobertura baixa não gera sinal.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>N2 · séries viram sinais</h3>
+  <p>O relatório sempre traz o máximo e o mínimo do período por tema e marca, com data, direto de SQL. A detecção acrescenta o que foge da linha de base.</p>
+  <table>
+    <thead><tr><th style="width:15%">Sinal</th><th style="width:34%">Método</th><th style="width:22%">Parâmetros iniciais</th><th>Suprimir quando</th></tr></thead>
+    <tbody>
+      <tr><td>Pico e vale</td><td>Z robusto de <code>share</code> sobre mediana e MAD de 28 dias; extremos locais com prominência mínima.</td><td>|z| de 3 ou mais, durando 2 dias</td><td>Cobertura abaixo de 0,8 ou amostra mínima não atingida.</td></tr>
+      <tr><td>Mudança de patamar</td><td>Mediana das 2 últimas semanas contra as 8 anteriores, confirmada por CUSUM.</td><td>Variação mínima a calibrar</td><td>Mesmos critérios.</td></tr>
+      <tr><td>Emergência</td><td>Tema ou marca com <code>share</code> zero nas 8 semanas anteriores e presença em 2 ou mais fontes.</td><td>Itens distintos mínimos a definir</td><td>Presença em uma só fonte.</td></tr>
+      <tr><td>Divergência</td><td>Mesmo tema com tendências de sentido oposto em fontes diferentes.</td><td>Diferença mínima a calibrar</td><td>Fonte com cobertura baixa.</td></tr>
+      <tr><td>Sentimento</td><td>Desvio da média de sentimento contra 28 dias.</td><td>|z| de 3 ou mais</td><td>Poucos itens com confiança alta.</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Todos os parâmetros são pontos de partida e devem ser calibrados com o conjunto de referência e com dados reais de pelo menos algumas semanas.</p>
+
+  <h3>Quais sinais chegam ao Claude</h3>
+  <p>Cada sinal recebe uma <code>prioridade</code>: magnitude × persistência × log(1 + itens distintos) × peso estratégico × novidade. O peso estratégico por tema e marca é definido com o Grupo. A novidade é 1 para o que não apareceu no relatório anterior e menor para o que se repete. O Claude recebe os K sinais de maior prioridade por escopo, então <strong>o número de chamadas depende dos sinais e não do volume de itens</strong>.</p>
+</section>
+
+<section id="s4-4">
+  <h2>4.4 N3 a N5: onde o Claude entra</h2>
+  <p>Três papéis, cada um com entrada fechada, saída estruturada e uma lista do que não pode fazer. O modelo é parâmetro do nível e fica registrado em <code>core.model_version</code>; usar um modelo menor em N3 e um mais forte em N5 é uma decisão de custo e qualidade a medir.</p>
+  <table>
+    <thead><tr><th style="width:16%">Papel</th><th style="width:30%">Entrada</th><th style="width:26%">Saída</th><th>Não pode</th></tr></thead>
+    <tbody>
+      <tr><td>N3 · Analista de sinal</td><td>Um sinal; a série com janela de contexto; comparativo com o período anterior; k exemplos curtos e representativos; insights anteriores do mesmo escopo.</td><td>Título, resumo curto, hipóteses (cada uma com evidências e números usados) e limitações.</td><td>Inventar número, afirmar causa ou citar item fora do pacote.</td></tr>
+      <tr><td>N4 · Analista de cruzamento (fase 2)</td><td>Insights N3 de escopos diferentes, com suas séries.</td><td>Conexões do tipo coocorrência, sequência ou contraste, com evidências.</td><td>Afirmar causalidade ou trazer fato novo.</td></tr>
+      <tr><td>N5 · Redator executivo</td><td>Insights aprovados, ordenados por prioridade, e indicadores do período.</td><td>Seções (destaques, riscos, oportunidades, o que monitorar), cada item ligado a insights.</td><td>Trazer fato ou número que não esteja nos insights aprovados.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Esquema de saída do N3 (ilustrativo)</h3>
+<pre>{
+  "sinal_id": "sig-0877",
+  "titulo": "string",
+  "resumo": "string, até 60 palavras",
+  "hipoteses": [
+    { "texto": "string, em linguagem de hipótese",
+      "evidencias": ["itm-...", "itm-..."],
+      "numeros": [ { "nome": "share_atual", "valor": 0.062, "origem": "serie[-1].share" } ] }
+  ],
+  "limitacoes": ["string"]
+}</pre>
+  <p>O campo <code>origem</code> é um caminho dentro do pacote de contexto. É por ele que o validador V1 confere se cada número do texto existe e bate com o pacote.</p>
+
+  <h3>Validadores em código</h3>
+  <table>
+    <thead><tr><th style="width:9%">Código</th><th style="width:15%">Verifica</th><th>Regra</th><th style="width:26%">Se falhar</th></tr></thead>
+    <tbody>
+      <tr><td>V1</td><td>Números</td><td>Todo número no texto aparece em <code>numeros</code> e bate com o valor do pacote, com tolerância de arredondamento.</td><td rowspan="5">Uma nova tentativa, devolvendo ao Claude a lista de erros. Falhou de novo: vai para a fila de revisão.</td></tr>
+      <tr><td>V2</td><td>Citações</td><td>Toda evidência citada existe e pertence ao escopo e ao período do pacote.</td></tr>
+      <tr><td>V3</td><td>Fundamentação</td><td>Nenhuma hipótese ou frase factual sem pelo menos uma evidência.</td></tr>
+      <tr><td>V4</td><td>Linguagem</td><td>Causalidade só com marcador de hipótese (&ldquo;uma hipótese é&rdquo;, &ldquo;pode indicar&rdquo;). Verbos como &ldquo;causou&rdquo; são barrados.</td></tr>
+      <tr><td>V5</td><td>Estrutura</td><td>JSON válido contra o esquema, com tamanhos máximos.</td></tr>
+      <tr><td>V6</td><td>Dados pessoais</td><td>Busca de e-mail, telefone e identificadores no texto gerado.</td><td>Bloqueia e abre revisão.</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Os validadores usam regras e expressões regulares, não outro LLM. Uma chamada de verificação independente ao Claude, por amostragem, pode ser acrescentada na fase 2.</p>
+</section>
+
+<section class="wide" id="s4-5">
+  <h2>4.5 Montagem e validação de uma chamada</h2>
+  <figure>
+    {{FIG6}}
+    <figcaption><b>Figura 6.</b> Uma chamada do nível N3. O pacote de contexto é montado em código a partir do sinal; o Claude responde em JSON; os validadores V1 a V6 decidem se o texto vira rascunho. A primeira falha volta ao Claude com a lista de erros, a segunda vai para um humano. Nada é publicado sem revisão: 100% em N4 e N5 e amostra em N3.</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="s4-6">
+  <h2>4.6 Rastreabilidade</h2>
+  <figure>
+    {{FIG7}}
+    <figcaption><b>Figura 7.</b> A cadeia de evidências. Cada seta é uma chave registrada no banco (<code>insight_evidence</code>, <code>series_point</code>, <code>label</code>, <code>raw_item</code>), então a cadeia pode ser percorrida nos dois sentidos. Os identificadores do desenho são exemplos.</figcaption>
+  </figure>
+</section>
+
+<section class="sec" id="s4-6b">
+  <h3 style="margin-top:0">Perguntas de auditoria (4.6)</h3>
+  <p>A cadeia da Figura 7 responde a quatro perguntas que o Grupo deve poder fazer a qualquer frase do relatório.</p>
+  <table class="compact">
+    <thead><tr><th style="width:30%">Pergunta de auditoria</th><th style="width:36%">Como se responde</th><th>Onde está</th></tr></thead>
+    <tbody>
+      <tr><td>De onde veio este número?</td><td>Do texto até o campo <code>origem</code> do insight, depois ao ponto de série e ao sinal.</td><td><code>insight.saida_json</code>, <code>series_point</code>, <code>signal</code></td></tr>
+      <tr><td>Quais posts sustentam esta frase?</td><td>Lista de itens ligados ao insight com papel <code>base</code>, <code>exemplo</code> e <code>contraexemplo</code>.</td><td><code>insight_evidence</code>, <code>core.item</code></td></tr>
+      <tr><td>Quem escreveu e com qual versão?</td><td>Modelo e hash do prompt gravados no insight; hash do pacote de contexto para reconstruir a chamada.</td><td><code>insight.modelo_id</code>, <code>prompt_hash</code>, <code>payload_hash</code></td></tr>
+      <tr><td>O que isto deixou de considerar?</td><td>Limitações declaradas pelo Claude e sinais suprimidos por cobertura ou amostra.</td><td><code>saida_json.limitacoes</code>, <code>signal.cobertura_ok</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s4-7">
+  <h2>4.7 Confiança, reprocessamento e avaliação</h2>
+
+  <h3>Confiança do insight, calculada em código</h3>
+  <p>O Claude pode descrever incertezas no texto, mas a classificação <code>baixa</code>, <code>media</code> ou <code>alta</code> sai de uma regra que o time controla.</p>
+  <table class="compact">
+    <thead><tr><th style="width:22%">Fator</th><th>Como entra</th></tr></thead>
+    <tbody>
+      <tr><td>Itens distintos</td><td>Mais itens distintos sobem a confiança. Abaixo do mínimo, o insight fica em <code>baixa</code>.</td></tr>
+      <tr><td>Fontes distintas</td><td>Duas ou mais fontes independentes sobem a confiança. Uma só limita a <code>media</code>.</td></tr>
+      <tr><td>Confiança dos rótulos</td><td>Média ponderada da confiança dos rótulos dos itens citados. Rótulo humano conta como 1.</td></tr>
+      <tr><td>Persistência</td><td>Sinal que dura vários dias sobe. Pico de um dia limita a <code>media</code>.</td></tr>
+      <tr><td>Cobertura</td><td>Cobertura abaixo do limiar rebaixa o insight.</td></tr>
+    </tbody>
+  </table>
+  <p><code>alta</code> exige que todos os fatores estejam acima do limiar. <code>baixa</code> vale se qualquer fator estiver abaixo do mínimo. O resto é <code>media</code>. Os limiares são pontos de partida a calibrar.</p>
+
+  <h3>Reprocessamento em cascata</h3>
+  <p>Gatilhos: nova versão do Jev ou do Claude, mudança de taxonomia, novo prompt ou correção de coleta. O efeito segue a cadeia: rótulos novos são acrescentados, os pontos de série das janelas afetadas são recalculados, os sinais são refeitos, e os insights que dependiam deles viram <code>obsoleto</code>. Só os de maior prioridade são regenerados, o que mantém o custo proporcional aos sinais. O orquestrador trabalha em partições por dia para refazer apenas o necessário.</p>
+
+  <h3>Como medir a camada de IA</h3>
+  <table class="compact">
+    <thead><tr><th style="width:17%">Métrica</th><th>Como medir</th><th style="width:26%">Meta</th></tr></thead>
+    <tbody>
+      <tr><td>Classificador</td><td>F1 por pergunta no conjunto de referência.</td><td>F1 de 0,85 (critério do M2)</td></tr>
+      <tr><td>Exatidão numérica</td><td>Percentual de números do texto que batem com o pacote (V1).</td><td>100%, é um gate</td></tr>
+      <tr><td>Fundamentação</td><td>Amostra revisada por humanos: percentual de afirmações sustentadas pela evidência.</td><td>A definir com o Grupo</td></tr>
+      <tr><td>Cobertura</td><td>Percentual dos K sinais mais prioritários que viraram insight.</td><td>A definir</td></tr>
+      <tr><td>Utilidade</td><td>Nota de 1 a 5 dos analistas do Grupo por insight e por relatório.</td><td>A definir com o Grupo</td></tr>
+      <tr><td>Estabilidade</td><td>Duas execuções com as mesmas entradas: percentual de hipóteses coincidentes.</td><td>A definir</td></tr>
+      <tr><td>Custo</td><td>US$ por insight e por relatório, lidos de <code>gov.cost_ledger</code>.</td><td>Dentro do orçamento do plano</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sec" id="s4-8">
+  <h2 style="margin-top:0">4.8 Exemplo completo (dados fictícios)</h2>
+  <p>Os números, marcas e identificadores abaixo são inventados para mostrar o formato. Eles não vêm de nenhuma coleta.</p>
+
+  <h3>N0 a N2 · do item ao sinal</h3>
+<pre>itm-9f3a   fonte portal-x   relevante=sim (0,97)   tema=embalagem (0,88)   marca=Marca A   sentimento=2
+series_point  dia 2026-11-12 · tema embalagem · Marca A · portal-x
+              volume 14 · share 0,062 · sentimento_medio 2,1 · cobertura 1,0
+sig-0877   tipo pico   escopo {tema: embalagem, marca: Marca A}   periodo 2026-11-10 a 2026-11-12
+           z_robusto 4,1   itens_distintos 61   cobertura_ok verdadeiro   prioridade 0,83</pre>
+
+  <h3>N3 · pacote enviado ao Claude</h3>
+<pre>{
+  "sinal": {"id": "sig-0877", "tipo": "pico", "periodo": ["2026-11-10", "2026-11-12"],
+            "escopo": {"tema": "embalagem", "marca": "Marca A"}, "z_robusto": 4.1},
+  "serie": [{"dia": "2026-11-06", "share": 0.021}, {"dia": "2026-11-07", "share": 0.019},
+            "...", {"dia": "2026-11-12", "share": 0.062}],
+  "comparativo": {"periodo_anterior_share_medio": 0.020},
+  "cobertura": 1.0,
+  "exemplos": [{"item_id": "itm-9f3a", "fonte": "portal-x", "sentimento": 2, "trecho": "..."},
+               {"item_id": "itm-b210", "fonte": "forum-y",  "sentimento": 2, "trecho": "..."}],
+  "relatorio_anterior": ["ins-0390"]
+}</pre>
+
+  <h3>N3 · resposta do Claude</h3>
+<pre>{
+  "sinal_id": "sig-0877",
+  "titulo": "Menções à embalagem da Marca A dispararam",
+  "resumo": "A parcela de menções à embalagem da Marca A foi de 2,0% para 6,2%, com tom negativo nos exemplos.",
+  "hipoteses": [{
+    "texto": "Uma hipótese é que a alta esteja ligada a uma discussão pública sobre a embalagem, pois os dois exemplos tratam do mesmo assunto.",
+    "evidencias": ["itm-9f3a", "itm-b210"],
+    "numeros": [{"nome": "share_atual",    "valor": 0.062, "origem": "serie[-1].share"},
+                {"nome": "share_anterior", "valor": 0.020, "origem": "comparativo.periodo_anterior_share_medio"}]
+  }],
+  "limitacoes": ["Só duas fontes nos exemplos", "Não há dado externo para confirmar a causa"]
+}</pre>
+
+  <h3>Validação e resultado</h3>
+  <table class="compact">
+    <thead><tr><th style="width:12%">Etapa</th><th style="width:28%">Resultado</th><th>Motivo</th></tr></thead>
+    <tbody>
+      <tr><td>V1 Números</td><td>Passou</td><td>&ldquo;2,0%&rdquo; e &ldquo;6,2%&rdquo; existem em <code>numeros</code> e batem com 0,020 e 0,062 do pacote.</td></tr>
+      <tr><td>V2 Citações</td><td>Passou</td><td><code>itm-9f3a</code> e <code>itm-b210</code> estão no pacote e no escopo.</td></tr>
+      <tr><td>V3 a V6</td><td>Passaram</td><td>Há evidência, a causa está em linguagem de hipótese, o JSON é válido e não há dado pessoal.</td></tr>
+      <tr><td>Confiança</td><td><code>media</code></td><td>Só duas fontes nos exemplos e o pico dura 3 dias. Cobertura e z robusto altos não bastam para <code>alta</code>.</td></tr>
+      <tr><td>Status</td><td><code>rascunho</code></td><td>Segue para revisão por amostra (N3). Depois de aprovado, vira <code>publicado</code> e pode ser citado no N5.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>N5 · trecho do relatório</h3>
+  <p><strong>Destaques do ciclo.</strong> A parcela de menções à embalagem da Marca A subiu de 2,0% para 6,2%, com tom negativo (insight <code>ins-0412</code>, confiança média). Uma hipótese é a de que a alta esteja ligada a uma discussão pública sobre a embalagem; não há dado para confirmar a causa.</p>
+</section>

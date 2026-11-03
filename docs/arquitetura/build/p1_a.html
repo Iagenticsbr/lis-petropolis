@@ -1,0 +1,208 @@
+<!-- ================= CAPA ================= -->
+<section class="cover">
+  <div class="eyebrow">IAgentics · Projeto LIS · Grupo Petrópolis</div>
+  <h1>Arquitetura, dados e motor de análise</h1>
+  <p class="sub">Como o sistema coleta, organiza e transforma conteúdo da web em análises por níveis, com scrapers próprios, Apify, Jev e Claude.</p>
+  <table>
+    <tr><td>Versão</td><td>Proposta v2, para decisão</td></tr>
+    <tr><td>Data</td><td>03/11/2026</td></tr>
+    <tr><td>Base</td><td>Plano revisado de 13/10/2026, com prazo final em 26/02/2027</td></tr>
+    <tr><td>Escopo</td><td>Estrutura de software, estrutura de dados e o &ldquo;puzzle&rdquo; de IA que gera as análises, do item coletado ao relatório</td></tr>
+    <tr><td>Status</td><td>Proposta. Não altera as ADRs 001 a 009 (todas com status Proposta) até ser aprovada.</td></tr>
+  </table>
+  <div class="art">
+    <svg viewBox="0 0 560 262" role="img" aria-label="Seis níveis de análise empilhados, de N0 na base a N5 no topo, cada um mais estreito que o anterior.">
+      <rect class="ext" x="20" y="214" width="520" height="34" rx="6"/><text class="c" x="280" y="236">N0 · Item rotulado</text>
+      <rect class="box" x="50" y="176" width="460" height="34" rx="6"/><text class="c" x="280" y="198">N1 · Série</text>
+      <rect class="box" x="80" y="138" width="400" height="34" rx="6"/><text class="c" x="280" y="160">N2 · Sinal</text>
+      <rect class="ext" x="110" y="100" width="340" height="34" rx="6"/><text class="c" x="280" y="122">N3 · Insight local</text>
+      <rect class="ext" x="140" y="62" width="280" height="34" rx="6"/><text class="c" x="280" y="84">N4 · Insight cruzado</text>
+      <rect class="ext" x="170" y="24" width="220" height="34" rx="6"/><text class="c" x="280" y="46">N5 · Relatório</text>
+      <text class="t2 s" x="20" y="14">menos itens, mais interpretação</text>
+    </svg>
+    <p class="fine">Tracejado: etapa em que o texto sai do nosso ambiente (Jev ou Claude). Valores de custo e limites de fornecedores vêm de páginas de terceiros e devem ser revalidados. Nada neste documento é parecer jurídico.</p>
+  </div>
+</section>
+
+<!-- ================= SUMÁRIO ================= -->
+<section class="sec">
+  <h1>Conteúdo</h1>
+  <div class="toc">
+    <a class="l1" href="#s1"><span>1 Resumo e decisões propostas</span><i></i><b>{{pg:s1}}</b></a>
+    <a class="l1" href="#s2"><span>2 Arquitetura de software</span><i></i><b>{{pg:s2}}</b></a>
+    <a class="l2" href="#s2-1"><span>2.1 Princípios</span><i></i><b>{{pg:s2-1}}</b></a>
+    <a class="l2" href="#s2-2"><span>2.2 Para onde vai cada fonte</span><i></i><b>{{pg:s2-2}}</b></a>
+    <a class="l2" href="#s2-3"><span>2.3 Fluxo de dados</span><i></i><b>{{pg:s2-3}}</b></a>
+    <a class="l2" href="#s2-4"><span>2.4 Classificador e roteamento</span><i></i><b>{{pg:s2-4}}</b></a>
+    <a class="l2" href="#s2-5"><span>2.5 Repositório e esteira de desenvolvimento</span><i></i><b>{{pg:s2-5}}</b></a>
+    <a class="l1" href="#s3"><span>3 Modelo de dados</span><i></i><b>{{pg:s3}}</b></a>
+    <a class="l2" href="#s3-1"><span>3.1 Visão geral</span><i></i><b>{{pg:s3-1}}</b></a>
+    <a class="l2" href="#s3-2"><span>3.2 Regras de dados</span><i></i><b>{{pg:s3-2}}</b></a>
+    <a class="l2" href="#s3-3"><span>3.3 Diagrama de entidades</span><i></i><b>{{pg:s3-3}}</b></a>
+    <a class="l2" href="#s3-4"><span>3.4 Dicionário das entidades centrais</span><i></i><b>{{pg:s3-4}}</b></a>
+    <a class="l1" href="#s4"><span>4 Motor de análise por níveis</span><i></i><b>{{pg:s4}}</b></a>
+    <a class="l2" href="#s4-1"><span>4.1 A ideia do puzzle</span><i></i><b>{{pg:s4-1}}</b></a>
+    <a class="l2" href="#s4-2"><span>4.2 Os seis níveis em um desenho</span><i></i><b>{{pg:s4-2}}</b></a>
+    <a class="l2" href="#s4-3"><span>4.3 N0 a N2: o que o Jev e o código produzem</span><i></i><b>{{pg:s4-3}}</b></a>
+    <a class="l2" href="#s4-4"><span>4.4 N3 a N5: onde o Claude entra</span><i></i><b>{{pg:s4-4}}</b></a>
+    <a class="l2" href="#s4-5"><span>4.5 Montagem e validação de uma chamada</span><i></i><b>{{pg:s4-5}}</b></a>
+    <a class="l2" href="#s4-6"><span>4.6 Rastreabilidade</span><i></i><b>{{pg:s4-6}}</b></a>
+    <a class="l2" href="#s4-7"><span>4.7 Confiança, reprocessamento e avaliação</span><i></i><b>{{pg:s4-7}}</b></a>
+    <a class="l2" href="#s4-8"><span>4.8 Exemplo completo (dados fictícios)</span><i></i><b>{{pg:s4-8}}</b></a>
+    <a class="l1" href="#s5"><span>5 Entrega, marcos e riscos</span><i></i><b>{{pg:s5}}</b></a>
+    <a class="l2" href="#s5-1"><span>5.1 Marcos</span><i></i><b>{{pg:s5-1}}</b></a>
+    <a class="l2" href="#s5-2"><span>5.2 Riscos e mitigações</span><i></i><b>{{pg:s5-2}}</b></a>
+    <a class="l2" href="#s5-3"><span>5.3 Decisões em aberto</span><i></i><b>{{pg:s5-3}}</b></a>
+    <a class="l1" href="#sa"><span>Anexos</span><i></i><b>{{pg:sa}}</b></a>
+    <a class="l2" href="#sa-a"><span>A DDL de referência</span><i></i><b>{{pg:sa-a}}</b></a>
+    <a class="l2" href="#sa-b"><span>B Contrato RawItem</span><i></i><b>{{pg:sa-b}}</b></a>
+    <a class="l2" href="#sa-c"><span>C Glossário</span><i></i><b>{{pg:sa-c}}</b></a>
+    <a class="l2" href="#sa-d"><span>D Fontes consultadas</span><i></i><b>{{pg:sa-d}}</b></a>
+  </div>
+  <h3 style="margin-top:16pt">Como ler</h3>
+  <p>Páginas em retrato trazem texto e tabelas. Páginas em paisagem trazem um diagrama cada, com a legenda embaixo. Palavras em <code>monoespaçado</code> são nomes de tabelas, campos, perguntas do classificador e pastas do repositório.</p>
+</section>
+
+<!-- ================= 1 RESUMO ================= -->
+<section class="sec" id="s1">
+  <h1>1 Resumo e decisões propostas</h1>
+  <p class="lead">O LIS monitora fontes públicas da web sobre o portfólio de bebidas do Grupo e entrega, a cada ciclo, análises de tendência (mínimas e máximas) e insights. Cada insight pode ser rastreado até o conteúdo que o originou.</p>
+
+  <h3>Arquitetura</h3>
+  <p>Três trilhas de coleta (scraper próprio em HTTP, scraper próprio com navegador e Apify) entregam o mesmo contrato, <code>RawItem</code>. Tudo roda em containers com infraestrutura em Terraform. Por isso o destino de hospedagem continua em aberto sem bloquear o desenvolvimento.</p>
+  <h3>Dados</h3>
+  <p>Quatro schemas no Postgres (<code>core</code>, <code>analytics</code>, <code>gov</code>, <code>bi</code>) mais uma zona bruta em armazenamento de objetos. Rótulos e insights só são acrescentados, nunca sobrescritos, e cada linha guarda a versão do modelo que a produziu.</p>
+  <h3>Análise</h3>
+  <p>Seis níveis, de N0 (item rotulado) a N5 (relatório). O código calcula tudo o que é número, o Jev rotula em volume e o Claude escreve a partir do N3 (no N0, só dá segunda opinião quando o Jev tem pouca confiança). Toda frase cita evidências, e validadores em código recusam texto que traz número sem origem.</p>
+
+  <h2 style="margin-top:14pt">Decisões propostas</h2>
+  <table>
+    <thead><tr><th style="width:20%">Decisão</th><th>Proposta</th><th style="width:30%">Quando decidir</th></tr></thead>
+    <tbody>
+      <tr><td>Hospedagem</td><td>Construir portátil (Docker e Terraform) e escolher o destino depois.</td><td>Até 18/01, data em que o Grupo entrega subscrição, quotas e dono dos custos.</td></tr>
+      <tr><td>Classificador</td><td>Disputa entre Jev e um Claude pequeno em amostra própria; o vencedor vira o padrão.</td><td>Antes do M2 (18/12). Amostra própria antes de 20/11, quando chegam os rótulos do Grupo.</td></tr>
+      <tr><td>Trilha de cada fonte</td><td>Regra de quatro perguntas, registrada no catálogo de fontes.</td><td>Catálogo de fontes v1 (M0).</td></tr>
+      <tr><td>Níveis de análise</td><td>MVP com N0 a N3 e N5. N4 (cruzamento) entra depois do M3.</td><td>Revisar após o M3 (22/01).</td></tr>
+      <tr><td>Revisão humana</td><td>100% em N4 e N5; amostra em N3.</td><td>Reduzir quando as métricas de fundamentação permitirem (seção 4.7).</td></tr>
+      <tr><td>Orquestrador</td><td>Dagster ou Prefect, ou algo mínimo se o volume permitir.</td><td>Antes de ligar a coleta agendada (M1).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Premissas</h3>
+  <ul>
+    <li>Datas, critérios e orçamento são os do plano de 13/10: R$ 50 mil de caixa sem o time, 4 pessoas dedicadas, 18,5 semanas.</li>
+    <li>Parâmetros numéricos de detecção e de confiança são pontos de partida e precisam ser calibrados com o conjunto de referência.</li>
+    <li>Preços e limites de terceiros vêm de páginas públicas e estão listados no Anexo D.</li>
+  </ul>
+</section>
+
+<!-- ================= 2 ARQUITETURA ================= -->
+<section class="sec" id="s2">
+  <h1>2 Arquitetura de software</h1>
+  <p class="lead">Coleta, normalização, classificação, agregação, síntese e entrega, com três fornecedores externos nos pontos em que o texto sai do nosso ambiente.</p>
+
+  <h2 id="s2-1">2.1 Princípios</h2>
+  <div class="defs">
+    <div><b>Contrato único na entrada</b><span>Todo coletor entrega <code>RawItem</code>. Trocar uma fonte de Apify para scraper próprio só muda o módulo de coleta.</span></div>
+    <div><b>Números em código, texto no LLM</b><span>Contagens, picos e vales saem de SQL e estatística. O Claude escreve sobre números que já existem.</span></div>
+    <div><b>Toda afirmação cita evidência</b><span>Do relatório até o payload bruto, cada peça aponta para as que a sustentam.</span></div>
+    <div><b>Versões fixas</b><span>Modelo, prompt e taxonomia têm versão gravada em cada resultado. Nada de &ldquo;latest&rdquo; em produção.</span></div>
+    <div><b>Portabilidade</b><span>Containers e Terraform. Nenhum serviço proprietário de nuvem no caminho crítico.</span></div>
+    <div><b>Dado pessoal mínimo</b><span>Autor em hash, texto mínimo para terceiros, agregados para o Claude.</span></div>
+    <div><b>Falhar à vista</b><span>Canário, cobertura por fonte e fila de revisão no lugar de erro silencioso.</span></div>
+  </div>
+
+  <h2 id="s2-2">2.2 Para onde vai cada fonte</h2>
+  <p>A decisão é por fonte e fica registrada em <code>sources/catalog.yaml</code>, junto com o status jurídico. Quatro perguntas, nesta ordem: é público e sem login? Os termos e o <code>robots.txt</code> permitem, ou o jurídico liberou? Há defesa ativa contra robôs? O conteúdo precisa de JavaScript?</p>
+  <table>
+    <thead><tr><th style="width:15%">Trilha</th><th style="width:30%">Quando usar</th><th style="width:20%">Ferramenta</th><th>Atenção</th></tr></thead>
+    <tbody>
+      <tr><td>Própria, HTTP</td><td>Público, sem login, termos permitem, sem defesa ativa, HTML estático, feed ou API.</td><td>httpx e Scrapy; API oficial quando existir.</td><td>O custo é manutenção: o site muda e o seletor quebra.</td></tr>
+      <tr><td>Própria, navegador</td><td>Mesmas condições, mas o conteúdo só aparece com JavaScript.</td><td>Playwright.</td><td>Um guia de mercado estima de 2x a 5x mais CPU e memória que HTTP.</td></tr>
+      <tr><td>Apify</td><td>Defesa ativa contra robôs ou necessidade de proxy residencial; hoje, as redes sociais.</td><td>Actor da Store, chamado por um adaptador.</td><td>Créditos mais proxy residencial (US$ 8 por GB no plano Starter, segundo guia independente de 09/09/2026).</td></tr>
+      <tr><td>Fora do MVP</td><td>Exige login ou o jurídico do Grupo não liberou.</td><td>Nenhuma.</td><td>Entra na fase 2 se o jurídico liberar (posição prevista para 04/12).</td></tr>
+    </tbody>
+  </table>
+  <h3>Exemplo de entrada no catálogo</h3>
+<pre>- id: portal-exemplo
+  nome: Portal de notícias de bebidas (exemplo)
+  trilha: own_http            # own_http | own_js | apify | fora_mvp
+  cadencia: 6h
+  status_juridico: liberado   # liberado | pendente | negado
+  robots_ok: true</pre>
+  <p class="note">Cada entrada vira uma linha em <code>core.source</code> na implantação. Mudar a trilha de uma fonte é editar este arquivo e trocar o módulo de coleta, sem tocar no restante do pipeline.</p>
+</section>
+
+<section class="wide" id="s2-3">
+  <h2>2.3 Fluxo de dados</h2>
+  <figure>
+    {{FIG1}}
+    <div class="legend">
+      <span><i class="sw"></i>nosso código e infraestrutura</span>
+      <span><i class="sw is-ext"></i>terceiro: o texto sai do ambiente</span>
+      <span><i class="sw is-key"></i>ponto de controle de qualidade</span>
+      <span><i class="sw is-src"></i>fonte na web</span>
+    </div>
+    <figcaption><b>Figura 1.</b> Os três coletores emitem o mesmo contrato (<code>RawItem</code>). O Jev recebe o texto do item e o Claude recebe agregados e exemplos, ambos fora do nosso ambiente. Contagens, picos e vales são calculados em código, e o Claude escreve em cima desses números.</figcaption>
+  </figure>
+</section>
+
+<section class="sec" id="s2-4">
+  <h2 style="margin-top:0">2.4 Classificador e roteamento</h2>
+  <p>O Jev classifica cada item; o Claude pequeno só dá uma segunda opinião quando a confiança fica abaixo do limiar τ. A Figura 2, na página seguinte, mostra o roteamento. A tabela abaixo resume o que as fontes consultadas dizem sobre o Jev (Anexo D); preço, latência e limites são do fornecedor e podem mudar.</p>
+  <h3>O que se sabe do Jev</h3>
+<table class="w-narrow">
+    <thead><tr><th style="width:15%">Tema</th><th>O que as fontes dizem</th></tr></thead>
+    <tbody>
+      <tr><td>O que é</td><td>Modelo de decisão da TypeSafe: lê um estado (texto ou JSON) e responde perguntas fechadas com probabilidade. Não gera texto.</td></tr>
+      <tr><td>Chamada</td><td><code>POST /v1/systemone</code> com <code>state</code>, <code>model</code> e <code>questions</code>. SDK em Python (<code>typesafe-sdk</code>) e em JavaScript.</td></tr>
+      <tr><td>Perguntas</td><td><code>noul</code> (sim ou não, devolve a probabilidade de sim), <code>choice</code> (uma opção entre até 255, com probabilidades e confiança) e <code>score</code> (posição numa escala ordenada, com confiança).</td></tr>
+      <tr><td>Versões</td><td><code>jev-latest</code> muda quando sai versão nova; <code>jev-1.13.0</code> é um exemplo de versão fixa. Usar versão fixa para os limiares continuarem valendo.</td></tr>
+      <tr><td>Limites</td><td>64 mil tokens por requisição, sendo até 32 mil para o estado mais a maior pergunta. Só texto. Sem ajuste fino por cliente.</td></tr>
+      <tr><td>Idioma</td><td>O treino principal é em inglês, segundo a TypeSafe. Português não foi testado nas fontes consultadas.</td></tr>
+      <tr><td>Preço</td><td>US$ 0,042 por milhão de tokens de entrada, com saída gratuita (valor divulgado pelo fornecedor).</td></tr>
+      <tr><td>Latência</td><td>De 70 a 500 ms segundo a TypeSafe. Um teste independente mediu de 197 a 531 ms com três perguntas por chamada, a partir de Toronto.</td></tr>
+      <tr><td>Avisos</td><td>Não explica o raciocínio. A mesma entrada pode variar levemente. Contas e datas devem ficar no código. &ldquo;Sem alucinação&rdquo; quer dizer não inventar opções fora do esquema, não acertar sempre.</td></tr>
+      <tr><td>Privacidade</td><td>Retenção e uso dos dados não aparecem nas páginas consultadas. Pedir os termos à TypeSafe antes de enviar dado do Grupo.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="wide" id="s2-4w">
+  <h3 style="margin:0 0 4pt">Roteamento por confiança</h3>
+  <figure>
+    {{FIG2}}
+    <figcaption><b>Figura 2.</b> O Jev classifica cada item. Acima do limiar τ o rótulo é gravado. Abaixo, o Claude dá uma segunda opinião e, se discordar, o item vai para revisão humana, que realimenta o conjunto de referência. O limiar é calibrado com a versão do Jev fixa; trocar a versão exige recalibrar. Jev e Claude implementam a mesma interface <code>Classifier</code>, então a disputa entre os dois é um teste e não uma reescrita.</figcaption>
+  </figure>
+</section>
+
+<section class="wide" id="s2-5">
+  <h2>2.5 Repositório e esteira de desenvolvimento</h2>
+  <figure>
+    {{FIG3}}
+    <figcaption><b>Figura 3.</b> A esteira roda igual em qualquer nuvem. O canário é o único passo que acessa sites reais fora do horário de coleta, e transforma quebra de scraper em tarefa visível no Linear em vez de queda silenciosa de cobertura.</figcaption>
+  </figure>
+  <div class="cols2" style="margin-top:10pt">
+<pre style="margin:0">lis/
+├─ sources/catalog.yaml     # fonte, trilha, status jurídico
+├─ src/lis/
+│  ├─ contracts/            # RawItem, Item, Label (pydantic)
+│  ├─ collectors/
+│  │  ├─ own/               # um módulo por fonte
+│  │  └─ apify/             # um adaptador por actor
+│  ├─ normalize/            # idioma, dedupe, autor em hash
+│  ├─ classify/             # Classifier + adaptadores jev, claude
+│  ├─ aggregate/            # séries, picos e vales, exemplos
+│  ├─ synthesize/           # prompts, validadores, níveis N3 a N5
+│  ├─ deliver/              # relatório e views SQL
+│  └─ pipeline/             # orquestração (Dagster ou Prefect)
+├─ evals/                   # conjunto de referência, F1, Jev x Claude
+├─ tests/                   # HTML gravado e testes de contrato
+└─ infra/                   # Terraform, Dockerfiles, compose</pre>
+    <div>
+      <p>Cada fonte nova é um módulo em <code>collectors/own</code> ou um adaptador em <code>collectors/apify</code>, com o HTML gravado em <code>tests/</code>. Nenhum módulo conhece a nuvem: o que muda por ambiente vem de variáveis e do Terraform.</p>
+      <p>O canário diário é o que torna viável ter scrapers próprios. Ele avisa quando um site mudou antes de a taxa de coleta cair abaixo dos 95% do M1.</p>
+      <p>O gate de F1 impede que uma troca de prompt, de versão do Jev ou de modelo piore a classificação sem ninguém ver. Os prompts dos níveis N3 a N5 ficam em <code>synthesize/</code> como arquivos versionados, e o hash de cada um é gravado em <code>analytics.insight</code>.</p>
+    </div>
+  </div>
+</section>
